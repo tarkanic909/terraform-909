@@ -55,29 +55,29 @@ variable "nodes" {
       as      = 65002
       role    = "router"
     }
-    "lab-k3s-master" = {
+    "lab-master" = {
       memory  = 2048
       vcpu    = 2
       network = "as65002"
       lan_ip  = "10.0.2.10"
       as      = 65002
-      role    = "k3s-master"
+      role    = "master"
     }
-    "lab-k3s-w1" = {
+    "lab-w1" = {
       memory  = 1024
       vcpu    = 1
       network = "as65002"
       lan_ip  = "10.0.2.11"
       as      = 65002
-      role    = "k3s-worker"
+      role    = "worker"
     }
-    "lab-k3s-w2" = {
+    "lab-w2" = {
       memory  = 1024
       vcpu    = 1
       network = "as65002"
       lan_ip  = "10.0.2.12"
       as      = 65002
-      role    = "k3s-worker"
+      role    = "worker"
     }
   }
 }
