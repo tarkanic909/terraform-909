@@ -1,0 +1,12 @@
+# Copy this file to terraform.tfvars and fill in your values
+# terraform.tfvars is in .gitignore — never commit it!
+
+libvirt_uri       = "qemu:///system"
+
+# Full path to the Debian cloud qcow2 image on the host
+debian_image_path = "/home/jozef/images/debian-12-generic-amd64.qcow2"
+
+# Your SSH public key
+ssh_public_key    = "ssh-ed25519 AAAA... jozef@laptop"
+
+ansible_user      = "ansible"
