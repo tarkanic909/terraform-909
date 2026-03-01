@@ -1,7 +1,37 @@
 locals {
   interlink_ips = {
-    "vm-router1" = "10.0.0.1"
-    "vm-router2" = "10.0.0.2"
+    "lab-router1" = "10.0.0.1"
+    "lab-router2" = "10.0.0.2"
+  }
+  mgmt_ips = {
+    for idx, name in sort(keys(var.nodes)) : name => "192.168.100.${10 + idx}"
+  }
+  mgmt_macs = {
+    for name, _ in var.nodes : name => format(
+      "52:54:%s:%s:%s:%s",
+      substr(md5("${name}-mgmt"), 0, 2),
+      substr(md5("${name}-mgmt"), 2, 2),
+      substr(md5("${name}-mgmt"), 4, 2),
+      substr(md5("${name}-mgmt"), 6, 2)
+    )
+  }
+  lan_macs = {
+    for name, _ in var.nodes : name => format(
+      "52:54:%s:%s:%s:%s",
+      substr(md5("${name}-lan"), 0, 2),
+      substr(md5("${name}-lan"), 2, 2),
+      substr(md5("${name}-lan"), 4, 2),
+      substr(md5("${name}-lan"), 6, 2)
+    )
+  }
+  interlink_macs = {
+    for name, _ in var.nodes : name => format(
+      "52:54:%s:%s:%s:%s",
+      substr(md5("${name}-interlink"), 0, 2),
+      substr(md5("${name}-interlink"), 2, 2),
+      substr(md5("${name}-interlink"), 4, 2),
+      substr(md5("${name}-interlink"), 6, 2)
+    )
   }
 }
 
@@ -48,6 +78,7 @@ resource "libvirt_domain" "vm" {
     interfaces = concat(
       # Management network — always present, wait for DHCP lease
       [{
+        mac   = { address = local.mgmt_macs[each.key] }
         model = { type = "virtio" }
         source = { network = {
           network        = libvirt_network.mgmt.name
@@ -56,6 +87,7 @@ resource "libvirt_domain" "vm" {
       }],
       # LAN network — AS65001 or AS65002
       [{
+        mac   = { address = local.lan_macs[each.key] }
         model = { type = "virtio" }
         source = { network = {
           network = each.value.network == "as65001" ? libvirt_network.as65001.name : libvirt_network.as65002.name
@@ -63,6 +95,7 @@ resource "libvirt_domain" "vm" {
       }],
       # Interlink — routers only
       contains(keys(local.interlink_ips), each.key) ? [{
+        mac   = { address = local.interlink_macs[each.key] }
         model = { type = "virtio" }
         source = { network = {
           network = libvirt_network.interlink.name

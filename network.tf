@@ -4,7 +4,7 @@ resource "libvirt_network" "as65001" {
   autostart = true
 }
 
-# AS 65002 — isolated network, no NAT
+# AS 65002 — isolated network, no NAT (forward omitted = isolated)
 resource "libvirt_network" "as65002" {
   name      = "as65002"
   autostart = true
@@ -34,12 +34,12 @@ resource "libvirt_network" "mgmt" {
         end   = "192.168.100.100"
       }]
 
-      # Reserve IPs per hostname so Ansible gets predictable addresses
+      # Reserve IPs per MAC so DHCP assignment is deterministic.
       hosts = [
-        for name, node in var.nodes : {
-          hostname = name
-          name     = name
-          ip       = "192.168.100.${10 + index(keys(var.nodes), name)}"
+        for name, _ in var.nodes : {
+          name = name
+          mac  = local.mgmt_macs[name]
+          ip   = local.mgmt_ips[name]
         }
       ]
     }

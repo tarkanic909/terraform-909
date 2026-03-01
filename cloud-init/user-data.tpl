@@ -22,14 +22,23 @@ write_files:
       network:
         version: 2
         ethernets:
-          enp1s0:
+          mgmt0:
+            match:
+              macaddress: "${mgmt_mac}"
+            set-name: mgmt0
             dhcp4: true
-          enp2s0:
+          lan0:
+            match:
+              macaddress: "${lan_mac}"
+            set-name: lan0
             dhcp4: false
             addresses:
               - ${lan_ip}/24
           %{ if interlink_ip != "" }
-          enp3s0:
+          interlink0:
+            match:
+              macaddress: "${interlink_mac}"
+            set-name: interlink0
             dhcp4: false
             addresses:
               - ${interlink_ip}/29
@@ -38,8 +47,9 @@ write_files:
 runcmd:
   - netplan apply
   - systemctl enable --now ssh
-  - locale-gen
-  - update-locale LC_ALL=en_US.UTF=8 LANG=en_US.UTF-8 LANGUAGE=en_US:en
+  - grep -q '^en_US.UTF-8 UTF-8' /etc/locale.gen || echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
+  - locale-gen en_US.UTF-8
+  - update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US:en
 
 packages:
   - curl

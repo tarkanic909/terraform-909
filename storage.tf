@@ -27,6 +27,9 @@ resource "libvirt_cloudinit_disk" "init" {
     ssh_public_key = var.ssh_public_key
     lan_ip         = each.value.lan_ip
     interlink_ip   = lookup(local.interlink_ips, each.key, "")
+    mgmt_mac       = local.mgmt_macs[each.key]
+    lan_mac        = local.lan_macs[each.key]
+    interlink_mac  = lookup(local.interlink_macs, each.key, "")
   })
 
   meta_data = yamlencode({
