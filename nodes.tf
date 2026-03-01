@@ -76,11 +76,3 @@ resource "libvirt_domain" "vm" {
     }]
   }
 }
-
-# output "vm_mgmt_ips" {
-#   description = "Management IPs — use these for Ansible inventory"
-#   value = {
-#     for name, domain in libvirt_domain.vm :
-#     name => domain.devices.interfaces[0].source.network.ip
-#   }
-# }
