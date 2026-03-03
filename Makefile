@@ -57,9 +57,6 @@ lab-list:
 	@echo "Lab VMs (all states):"
 	@echo "$(LAB_VMS_ALL)" | tr ' ' '\n' | sed '/^$$/d; s/^/  /'
 
-## lab-info - Alias for listing lab VMs
-lab-info: lab-list
-
 ## inventory - Generate Ansible inventory
 inventory:
 	@terraform output -json node_info | jq -r ' "[masters]", (to_entries[] | select(.key | startswith("lab-master")) | .value.ip), "", "[workers]", (to_entries[] | select(.key | startswith("lab-w")) | .value.ip) '
