@@ -19,6 +19,13 @@ The current plan creates 6 VMs:
 - `sudo` privileges for `virsh` operations in the Makefile
 - Debian cloud image (`.qcow2`) available on the host
 
+## Tested Versions
+
+- Terraform: `1.14.6`
+- Terraform provider `dmacvicar/libvirt`: `0.9.3` (constraint `~> 0.9.0`)
+- libvirt (`virsh --version`): `11.3.0`
+- QEMU (`qemu-system-x86_64 --version`): `10.0.7`
+
 ## Configuration
 
 1. Copy the example file:
