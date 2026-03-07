@@ -3,4 +3,10 @@
 terraform.tfstate
 terraform.tfstate.backup
 terraform.tfstate.*.backup
+terraform.tfvars
+*.tfvars
+*.tfvars.json
+*.auto.tfvars
+*.auto.tfvars.json
+!*.tfvars.example
 labplan
