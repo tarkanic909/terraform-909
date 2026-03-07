@@ -53,10 +53,6 @@ lab-up: init validate plan apply
 ## lab-down: - Quick cluster down
 lab-down: destroy
 
-## inventory: - Generate Ansible inventory
-inventory:
-	@terraform output -json node_info | jq -r ' "[masters]", (to_entries[] | select(.key | startswith("lab-master")) | .value.ip), "", "[workers]", (to_entries[] | select(.key | startswith("lab-w")) | .value.ip) '
-
 ## lab-list: - libvirt List lab VMs 
 lab-list:
 	@echo "List all lab vms (all states)"
