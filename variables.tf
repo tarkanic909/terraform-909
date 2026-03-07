@@ -55,7 +55,7 @@ variable "nodes" {
       as      = 65002
       role    = "router"
     }
-    "lab-master" = {
+    "lab-k3s-master" = {
       memory  = 2048
       vcpu    = 2
       network = "as65002"
@@ -63,7 +63,7 @@ variable "nodes" {
       as      = 65002
       role    = "master"
     }
-    "lab-w1" = {
+    "lab-k3s-w1" = {
       memory  = 1024
       vcpu    = 1
       network = "as65002"
@@ -71,7 +71,7 @@ variable "nodes" {
       as      = 65002
       role    = "worker"
     }
-    "lab-w2" = {
+    "lab-k3s-w2" = {
       memory  = 1024
       vcpu    = 1
       network = "as65002"
