@@ -6,6 +6,8 @@ output "node_info" {
       ip     = local.mgmt_ips[node_name]
       memory = var.nodes[node_name].memory
       vcpu   = var.nodes[node_name].vcpu
+      role   = var.nodes[node_name].role
+      as     = var.nodes[node_name].as
     }
   }
 }
