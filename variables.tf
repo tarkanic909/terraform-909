@@ -39,13 +39,13 @@ variable "nodes" {
       as      = 65001
       role    = "router"
     }
-    "lab-host1" = {
-      memory  = 512
-      vcpu    = 1
+    "lab-k3s-single" = {
+      memory  = 2048
+      vcpu    = 2
       network = "as65001"
       lan_ip  = "10.0.1.10"
-      as      = 0
-      role    = "host"
+      as      = 65001
+      role    = "single"
     }
     "lab-router2" = {
       memory  = 512
