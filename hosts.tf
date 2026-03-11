@@ -18,4 +18,9 @@ resource "null_resource" "update_local_hosts" {
       echo "# END lab-909" | sudo tee -a /etc/hosts
     EOF
   }
+
+  provisioner "local-exec" {
+    when    = destroy
+    command = "sudo sed -i '/# BEGIN lab-909/,/# END lab-909/d' /etc/hosts"
+  }
 }

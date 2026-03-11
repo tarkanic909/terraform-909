@@ -7,8 +7,8 @@ Terraform project for a local `libvirt` (KVM/QEMU) lab with this topology:
 
 The current plan creates 6 VMs:
 - `lab-router1`, `lab-router2`
-- `lab-master`, `lab-w1`, `lab-w2`
-- `lab-host1`
+- `lab-k3s-single`
+- `lab-k3s-master`, `lab-k3s-w1`, `lab-k3s-w2`
 
 ## Requirements
 
