@@ -1,7 +1,7 @@
 locals {
   interlink_ips = {
-    "lab-router1" = "10.0.0.1"
-    "lab-router2" = "10.0.0.2"
+    for name, node in var.nodes : name => node.interlink_ip
+    if node.interlink_ip != null
   }
   mgmt_ips = {
     for idx, name in sort(keys(var.nodes)) : name => "192.168.100.${10 + idx}"
@@ -94,7 +94,7 @@ resource "libvirt_domain" "vm" {
         } }
       }],
       # Interlink — routers only
-      contains(keys(local.interlink_ips), each.key) ? [{
+      each.value.interlink_ip != null ? [{
         mac   = { address = local.interlink_macs[each.key] }
         model = { type = "virtio" }
         source = { network = {

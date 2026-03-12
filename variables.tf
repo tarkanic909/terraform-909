@@ -12,6 +12,7 @@ variable "debian_image_path" {
 variable "ssh_public_key" {
   description = "SSH public key for ansible user"
   type        = string
+  sensitive   = true
 }
 
 variable "ansible_user" {
@@ -23,12 +24,13 @@ variable "ansible_user" {
 variable "nodes" {
   description = "Map of all vms in lab"
   type = map(object({
-    memory  = number
-    vcpu    = number
-    network = string # as65001 | as65002
-    lan_ip  = string
-    as      = number
-    role    = string # router | single | master | worker
+    memory       = number
+    vcpu         = number
+    network      = string # as65001 | as65002
+    lan_ip       = string
+    as           = number
+    role         = string  # router | single | master | worker
+    interlink_ip = optional(string, null)
   }))
 
   validation {
@@ -51,14 +53,22 @@ variable "nodes" {
     ])
     error_message = "Each node must have memory > 0 and vcpu > 0."
   }
+
+  validation {
+    condition = alltrue([
+      for node in values(var.nodes) : node.role == "router" ? node.interlink_ip != null : true
+    ])
+    error_message = "Nodes with role 'router' must have interlink_ip set."
+  }
   default = {
     "lab-router1" = {
-      memory  = 512
-      vcpu    = 1
-      network = "as65001"
-      lan_ip  = "10.0.1.1"
-      as      = 65001
-      role    = "router"
+      memory       = 512
+      vcpu         = 1
+      network      = "as65001"
+      lan_ip       = "10.0.1.1"
+      as           = 65001
+      role         = "router"
+      interlink_ip = "10.0.0.1"
     }
     "lab-k3s-single" = {
       memory  = 2048
@@ -69,12 +79,13 @@ variable "nodes" {
       role    = "single"
     }
     "lab-router2" = {
-      memory  = 512
-      vcpu    = 1
-      network = "as65002"
-      lan_ip  = "10.0.2.1"
-      as      = 65002
-      role    = "router"
+      memory       = 512
+      vcpu         = 1
+      network      = "as65002"
+      lan_ip       = "10.0.2.1"
+      as           = 65002
+      role         = "router"
+      interlink_ip = "10.0.0.2"
     }
     "lab-k3s-master" = {
       memory  = 2048

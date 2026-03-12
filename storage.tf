@@ -1,8 +1,7 @@
-# System disk — full copy of base image, no backing file chain
-resource "libvirt_volume" "vm_disk" {
-  for_each = var.nodes
-  name     = "${each.key}-disk.qcow2"
-  pool     = "default"
+# Base image — loaded once, shared across all VM disks (copy-on-write)
+resource "libvirt_volume" "base_image" {
+  name = "debian-base.qcow2"
+  pool = "default"
 
   target = {
     format = { type = "qcow2" }
@@ -12,6 +11,22 @@ resource "libvirt_volume" "vm_disk" {
     content = {
       url = "file://${var.debian_image_path}"
     }
+  }
+}
+
+# System disk — thin qcow2 overlay on top of base image
+resource "libvirt_volume" "vm_disk" {
+  for_each = var.nodes
+  name     = "${each.key}-disk.qcow2"
+  pool     = "default"
+
+  target = {
+    format = { type = "qcow2" }
+  }
+
+  backing_store = {
+    path   = libvirt_volume.base_image.target.path
+    format = { type = "qcow2" }
   }
 }
 

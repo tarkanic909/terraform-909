@@ -106,6 +106,76 @@ make info
 - `virsh` commands prompt for password or fail:
   - verify `sudo` privileges and access to `qemu:///system`.
 
+### VM does not get a DHCP lease / Terraform hangs on `wait_for_lease`
+
+The mgmt network uses static DHCP reservations matched by MAC address. If the MAC changes (e.g. after recreating the VM), the lease won't be assigned.
+
+```bash
+# Check if the VM is running
+sudo virsh list --all | grep lab-
+
+# Check DHCP leases on the mgmt network
+sudo virsh net-dhcp-leases mgmt
+
+# Verify MAC addresses match what Terraform generated
+sudo virsh domiflist <vm-name>
+```
+
+### Accessing a VM via serial console (no SSH yet)
+
+```bash
+sudo virsh console <vm-name>
+# Exit with: Ctrl+]
+```
+
+### Debugging cloud-init
+
+Cloud-init runs on first boot and configures networking, users and SSH keys.
+
+```bash
+# Check cloud-init status
+sudo virsh console <vm-name>
+# Inside the VM:
+cloud-init status
+cat /var/log/cloud-init-output.log
+cat /var/log/cloud-init.log | grep -i error
+```
+
+### Orphaned resources after a failed `terraform apply`
+
+If apply fails mid-way, some resources may exist in libvirt but not in Terraform state.
+
+```bash
+# List all lab VMs in libvirt
+make lab-list
+
+# Force remove leftover VMs and storage
+make vms-undefine
+
+# Then re-apply from scratch
+make lab-up
+```
+
+## Pre-commit Hooks
+
+Install once after cloning:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Hooks run automatically on `git commit`:
+- `terraform fmt` — format check
+- `terraform validate` — config validation
+- `gitleaks` — secret scanning
+
+Run manually on all files:
+
+```bash
+pre-commit run --all-files
+```
+
 ## Notes
 
 - `make clean` removes `labplan` and `.terraform`.

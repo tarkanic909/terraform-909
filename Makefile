@@ -37,6 +37,8 @@ apply:
 
 ## destroy: - Destroy all resources
 destroy:
+	@read -p "Destroy ALL resources? [yes/N]: " confirm && \
+	[ "$$confirm" = "yes" ] || (echo "Aborted." && exit 1)
 	terraform destroy -auto-approve
 
 ## clean: - Clean up local terraform files
