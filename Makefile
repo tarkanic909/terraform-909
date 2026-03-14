@@ -1,10 +1,9 @@
-.PHONY: help init plan apply destroy validate fmt fmt-check clean info lab-up lab-down lab-list lab-info inventory vms-stop vms-start vms-undefine
+.PHONY: help init plan apply destroy validate fmt fmt-check clean info lab-up lab-down lab-list lab-info vms-stop vms-start vms-undefine
 
 .DEFAULT_GOAL := help
 
 # Lab VMs lists (evaluated when used).
-LAB_VMS_ALL = $(shell sudo virsh list --all | awk '$$2 ~ /^lab-/ {print $$2}')
-LAB_VMS_ALL_LIST = $(shell sudo virsh list --all | awk '$$2 ~ /^lab-/ {print }')
+LAB_VMS_ALL     = $(shell sudo virsh list --all | awk '$$2 ~ /^lab-/ {print $$2}')
 LAB_VMS_RUNNING = $(shell sudo virsh list | awk '$$2 ~ /^lab-/ {print $$2}')
 
 help:
@@ -33,6 +32,7 @@ plan:
 
 ## apply: - Apply saved plan
 apply:
+	@test -f labplan || (echo "Error: no plan file found, run 'make plan' first." && exit 1)
 	terraform apply -auto-approve labplan
 
 ## destroy: - Destroy all resources
@@ -55,12 +55,19 @@ lab-up: init validate plan apply
 ## lab-down: - Quick cluster down
 lab-down: destroy
 
-## lab-list: - libvirt List lab VMs 
+## lab-list: - libvirt List lab VMs
 lab-list:
 	@echo "List all lab vms (all states)"
 	sudo virsh list --all | awk '$$2 ~ /^lab-/ {print }'
 
-## vms-stop: - libvirt Stop all running lab VMs in 
+## lab-info: - libvirt Show lab VM details (CPU, memory, state)
+lab-info:
+	@for vm in $(LAB_VMS_ALL); do \
+		echo "=== $$vm ==="; \
+		sudo virsh dominfo "$$vm" | grep -E 'State|CPU|Max memory|Used memory'; \
+	done
+
+## vms-stop: - libvirt Stop all running lab VMs
 vms-stop:
 	@echo "Stopping running lab VMs..."
 	@for vm in $(LAB_VMS_RUNNING); do \
@@ -81,8 +88,10 @@ vms-start:
 ## vms-undefine: - libvirt Undefine all lab VMs and remove their storage in libvirt
 vms-undefine: vms-stop
 	@echo "Undefining lab VMs..."
-	@for vm in $(LAB_VMS_ALL); do \
+	@failed=0; \
+	for vm in $(LAB_VMS_ALL); do \
 		echo "  $$vm"; \
-		sudo virsh undefine "$$vm" --remove-all-storage; \
-	done
+		sudo virsh undefine "$$vm" --remove-all-storage || { echo "ERROR: failed to undefine $$vm" >&2; failed=1; }; \
+	done; \
+	[ "$$failed" -eq 0 ] || (echo "Some VMs failed to undefine." >&2; exit 1)
 	@echo "Done."

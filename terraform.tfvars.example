@@ -4,9 +4,9 @@
 libvirt_uri       = "qemu:///system"
 
 # Full path to the Debian cloud qcow2 image on the host
-debian_image_path = "/home/jozef/images/debian-12-generic-amd64.qcow2"
+debian_image_path = "/home/user/images/debian-13-genericcloud-amd64.qcow2"
 
 # Your SSH public key
-ssh_public_key    = "ssh-ed25519 AAAA... jozef@laptop"
+ssh_public_key    = "ssh-ed25519 AAAA... user@host"
 
 ansible_user      = "ansible"

@@ -16,9 +16,11 @@ resource "libvirt_volume" "base_image" {
 
 # System disk — thin qcow2 overlay on top of base image
 resource "libvirt_volume" "vm_disk" {
-  for_each = var.nodes
-  name     = "${each.key}-disk.qcow2"
-  pool     = "default"
+  for_each      = var.nodes
+  name          = "${each.key}-disk.qcow2"
+  pool          = "default"
+  capacity      = each.value.disk_size
+  capacity_unit = "GiB"
 
   target = {
     format = { type = "qcow2" }
@@ -42,9 +44,9 @@ resource "libvirt_cloudinit_disk" "init" {
     ssh_public_key = var.ssh_public_key
     lan_ip         = each.value.lan_ip
     interlink_ip   = lookup(local.interlink_ips, each.key, "")
-    mgmt_mac       = local.mgmt_macs[each.key]
-    lan_mac        = local.lan_macs[each.key]
-    interlink_mac  = lookup(local.interlink_macs, each.key, "")
+    mgmt_mac       = local.macs["${each.key}-mgmt"]
+    lan_mac        = local.macs["${each.key}-lan"]
+    interlink_mac  = local.macs["${each.key}-interlink"]
   })
 
   meta_data = yamlencode({

@@ -176,6 +176,14 @@ Run manually on all files:
 pre-commit run --all-files
 ```
 
+## State Backend
+
+Terraform state is stored locally (`terraform.tfstate`). This is intentional for a
+single-user homelab — no locking, no remote sync. Do not run `terraform` from multiple
+machines without first migrating state to a remote backend.
+
+See [`docs/TODO.md`](docs/TODO.md) for a migration plan to GitLab-managed state.
+
 ## Notes
 
 - `make clean` removes `labplan` and `.terraform`.
