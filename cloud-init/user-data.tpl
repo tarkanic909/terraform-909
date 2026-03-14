@@ -68,7 +68,7 @@ write_files:
       MACAddress=${interlink_mac}
 
       [Network]
-      Address=${interlink_ip}/29
+      Address=${interlink_ip}/30
 
   %{ endif }
 
@@ -89,4 +89,4 @@ packages:
   - net-tools
 
 package_update: true
-package_upgrade: true
+package_upgrade: false
