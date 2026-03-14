@@ -75,4 +75,13 @@ variable "nodes" {
     ])
     error_message = "Nodes with role 'router' must have interlink_ip set."
   }
+
+  validation {
+    condition = alltrue([
+      for node in values(var.nodes) :
+      (node.network == "as65001" && node.as == 65001) ||
+      (node.network == "as65002" && node.as == 65002)
+    ])
+    error_message = "node.as must match node.network: as65001 requires as=65001, as65002 requires as=65002."
+  }
 }

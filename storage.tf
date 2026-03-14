@@ -55,7 +55,10 @@ resource "libvirt_cloudinit_disk" "init" {
   })
 }
 
-# Cloud-init ISO as a volume (required to attach to VM in 0.9.x)
+# libvirt provider 0.9.x split cloud-init into two steps:
+#   1. libvirt_cloudinit_disk — renders user-data/meta-data templates into an ISO
+#   2. libvirt_volume         — exposes that ISO as a volume so it can be attached to a VM disk block
+# A single resource is not sufficient; the volume wrapper is required by the provider API.
 resource "libvirt_volume" "cloud_init" {
   for_each = var.nodes
   name     = "${each.key}-cidata.iso"
