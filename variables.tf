@@ -29,7 +29,8 @@ variable "nodes" {
     network      = string               # as65001 | as65002
     mgmt_ip      = string               # 192.168.100.x
     lan_ip       = string
-    as           = number
+    lan_network  = string
+    bgp_as       = number
     role         = string # router | single | master | worker
     interlink_ip = optional(string, null)
   }))
@@ -87,9 +88,9 @@ variable "nodes" {
   validation {
     condition = alltrue([
       for node in values(var.nodes) :
-      (node.network == "as65001" && node.as == 65001) ||
-      (node.network == "as65002" && node.as == 65002)
+      (node.network == "as65001" && node.bgp_as == 65001) ||
+      (node.network == "as65002" && node.bgp_as == 65002)
     ])
-    error_message = "node.as must match node.network: as65001 requires as=65001, as65002 requires as=65002."
+    error_message = "node.bgp_as must match node.network: as65001 requires bgp_as=65001, as65002 requires bgp_as=65002."
   }
 }
