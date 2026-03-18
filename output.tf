@@ -10,6 +10,7 @@ output "node_info" {
       vcpu         = var.nodes[node_name].vcpu
       role         = var.nodes[node_name].role
       as           = var.nodes[node_name].as
+      bgp_neighbor_ip = lookup(local.interlink_ips, lookup(local.interlink_neighbors, node_name, ""), "")
     }
   }
 }

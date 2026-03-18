@@ -1,4 +1,9 @@
 locals {
+  interlink_neighbors = {
+    "lab-router1" = "lab-router2"
+    "lab-router2" = "lab-router1"
+  }
+
   interlink_ips = {
     for name, node in var.nodes : name => node.interlink_ip
     if node.interlink_ip != null
