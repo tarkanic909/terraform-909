@@ -11,6 +11,7 @@ output "node_info" {
       role            = var.nodes[node_name].role
       as              = var.nodes[node_name].as
       bgp_neighbor_ip = lookup(local.interlink_ips, lookup(local.interlink_neighbors, node_name, ""), "")
+      bgp_neighbor_as = try(var.nodes[local.interlink_neighbors[node_name]].as, 0)
     }
   }
 }
