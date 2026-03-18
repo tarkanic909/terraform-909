@@ -1,4 +1,4 @@
-.PHONY: help init plan apply destroy validate fmt fmt-check clean info lab-up lab-down lab-list lab-info vms-stop vms-start vms-undefine
+.PHONY: help init plan apply destroy validate fmt fmt-check clean info lab-up lab-down lab-wait lab-list lab-info vms-stop vms-start vms-undefine
 
 .DEFAULT_GOAL := help
 
@@ -49,11 +49,28 @@ clean:
 info:
 	terraform output -json node_info | jq '.'
 
-## lab-up: - Quick cluster up
-lab-up: init validate plan apply
+## lab-up: - Quick cluster up (init → validate → plan → apply → wait for cloud-init)
+lab-up: init validate plan apply lab-wait
 
 ## lab-down: - Quick cluster down
 lab-down: destroy
+
+## lab-wait: - Wait for all lab VMs to finish cloud-init (reboot included)
+lab-wait:
+	@echo "Waiting for cloud-init to finish on all lab VMs..."
+	@for vm in $(LAB_VMS_ALL); do \
+		echo "  Waiting for $$vm..."; \
+		ip=$$(terraform output -json node_info 2>/dev/null | jq -r --arg vm "$$vm" '.[$vm].mgmt_ip // empty'); \
+		if [ -z "$$ip" ]; then echo "  WARNING: no mgmt_ip for $$vm, skipping"; continue; fi; \
+		for i in $$(seq 1 30); do \
+			ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes \
+				ansible@$$ip "cloud-init status --wait 2>/dev/null || true" 2>/dev/null && break; \
+			echo "    attempt $$i/30 — not ready yet, retrying in 10s..."; \
+			sleep 10; \
+		done; \
+		echo "  $$vm ready."; \
+	done
+	@echo "All VMs ready."
 
 ## lab-list: - libvirt List lab VMs
 lab-list:

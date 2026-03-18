@@ -22,7 +22,7 @@ The current plan creates 6 VMs:
 ## Tested Versions
 
 - Terraform: `1.14.6`
-- Terraform provider `dmacvicar/libvirt`: `0.9.3` (constraint `~> 0.9.0`)
+- Terraform provider `dmacvicar/libvirt`: `0.9.4` (constraint `~> 0.9.0`)
 - libvirt (`virsh --version`): `11.3.0`
 - QEMU (`qemu-system-x86_64 --version`): `10.0.7`
 
@@ -68,7 +68,6 @@ make lab-up
 - `make destroy` - destroy all Terraform resources
 - `make lab-down` - alias for `destroy`
 - `make info` - print `node_info` as JSON
-- `make inventory` - generate a simple Ansible inventory
 
 Libvirt utility targets:
 - `make lab-list` - list VMs with `lab-` prefix
@@ -95,7 +94,7 @@ make info
 - `mgmt`: `192.168.100.0/24`, gateway `192.168.100.1`, per-node DHCP reservations
 - `as65001`: `10.0.1.0/24`
 - `as65002`: `10.0.2.0/24`
-- `interlink`: `10.0.0.0/29` (router1 `10.0.0.1`, router2 `10.0.0.2`)
+- `interlink`: `10.0.0.0/30` (router1 `10.0.0.1`, router2 `10.0.0.2`)
 
 ## Troubleshooting
 

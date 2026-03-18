@@ -79,6 +79,14 @@ variable "nodes" {
   validation {
     condition = alltrue([
       for node in values(var.nodes) :
+      node.interlink_ip == null ? true : can(cidrhost("${node.interlink_ip}/32", 0))
+    ])
+    error_message = "Each node.interlink_ip must be a valid IP address."
+  }
+
+  validation {
+    condition = alltrue([
+      for node in values(var.nodes) :
       (node.network == "as65001" && node.as == 65001) ||
       (node.network == "as65002" && node.as == 65002)
     ])
