@@ -17,39 +17,71 @@ ssh_pwauth: false
 disable_root: true
 
 write_files:
-  - path: /etc/netplan/00-lab.yaml
+  # --- interface rename via udev (.link files) ---
+  - path: /etc/systemd/network/10-mgmt0.link
     content: |
-      network:
-        version: 2
-        ethernets:
-          mgmt0:
-            match:
-              macaddress: "${mgmt_mac}"
-            set-name: mgmt0
-            dhcp4: true
-          lan0:
-            match:
-              macaddress: "${lan_mac}"
-            set-name: lan0
-            dhcp4: false
-            addresses:
-              - ${lan_ip}/24
-          %{ if interlink_ip != "" }
-          interlink0:
-            match:
-              macaddress: "${interlink_mac}"
-            set-name: interlink0
-            dhcp4: false
-            addresses:
-              - ${interlink_ip}/29
-          %{ endif }
+      [Match]
+      MACAddress=${mgmt_mac}
+
+      [Link]
+      Name=mgmt0
+
+  - path: /etc/systemd/network/20-lan0.link
+    content: |
+      [Match]
+      MACAddress=${lan_mac}
+
+      [Link]
+      Name=lan0
+
+  %{ if interlink_ip != "" }
+  - path: /etc/systemd/network/30-interlink0.link
+    content: |
+      [Match]
+      MACAddress=${interlink_mac}
+
+      [Link]
+      Name=interlink0
+
+  %{ endif }
+  # --- network configuration (.network files) ---
+  - path: /etc/systemd/network/10-mgmt0.network
+    content: |
+      [Match]
+      MACAddress=${mgmt_mac}
+
+      [Network]
+      DHCP=ipv4
+
+  - path: /etc/systemd/network/20-lan0.network
+    content: |
+      [Match]
+      MACAddress=${lan_mac}
+
+      [Network]
+      Address=${lan_ip}/24
+
+  %{ if interlink_ip != "" }
+  - path: /etc/systemd/network/30-interlink0.network
+    content: |
+      [Match]
+      MACAddress=${interlink_mac}
+
+      [Network]
+      Address=${interlink_ip}/30
+
+  %{ endif }
 
 runcmd:
-  - netplan apply
+  - rm -f /etc/netplan/*.yaml
+  - systemctl enable --now systemd-networkd
+  - systemctl enable --now systemd-resolved
+  - ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
   - systemctl enable --now ssh
   - grep -q '^en_US.UTF-8 UTF-8' /etc/locale.gen || echo 'en_US.UTF-8 UTF-8' >> /etc/locale.gen
   - locale-gen en_US.UTF-8
   - update-locale LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US:en
+  - reboot
 
 packages:
   - curl
@@ -58,3 +90,4 @@ packages:
   - net-tools
 
 package_update: true
+package_upgrade: false

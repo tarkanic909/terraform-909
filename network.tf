@@ -38,7 +38,7 @@ resource "libvirt_network" "mgmt" {
       hosts = [
         for name, _ in var.nodes : {
           name = name
-          mac  = local.mgmt_macs[name]
+          mac  = local.macs["${name}-mgmt"]
           ip   = local.mgmt_ips[name]
         }
       ]

@@ -7,8 +7,8 @@ Terraform project for a local `libvirt` (KVM/QEMU) lab with this topology:
 
 The current plan creates 6 VMs:
 - `lab-router1`, `lab-router2`
-- `lab-master`, `lab-w1`, `lab-w2`
-- `lab-host1`
+- `lab-k3s-single`
+- `lab-k3s-master`, `lab-k3s-w1`, `lab-k3s-w2`
 
 ## Requirements
 
@@ -22,7 +22,7 @@ The current plan creates 6 VMs:
 ## Tested Versions
 
 - Terraform: `1.14.6`
-- Terraform provider `dmacvicar/libvirt`: `0.9.3` (constraint `~> 0.9.0`)
+- Terraform provider `dmacvicar/libvirt`: `0.9.4` (constraint `~> 0.9.0`)
 - libvirt (`virsh --version`): `11.3.0`
 - QEMU (`qemu-system-x86_64 --version`): `10.0.7`
 
@@ -68,7 +68,6 @@ make lab-up
 - `make destroy` - destroy all Terraform resources
 - `make lab-down` - alias for `destroy`
 - `make info` - print `node_info` as JSON
-- `make inventory` - generate a simple Ansible inventory
 
 Libvirt utility targets:
 - `make lab-list` - list VMs with `lab-` prefix
@@ -95,7 +94,7 @@ make info
 - `mgmt`: `192.168.100.0/24`, gateway `192.168.100.1`, per-node DHCP reservations
 - `as65001`: `10.0.1.0/24`
 - `as65002`: `10.0.2.0/24`
-- `interlink`: `10.0.0.0/29` (router1 `10.0.0.1`, router2 `10.0.0.2`)
+- `interlink`: `10.0.0.0/30` (router1 `10.0.0.1`, router2 `10.0.0.2`)
 
 ## Troubleshooting
 
@@ -105,6 +104,84 @@ make info
   - verify the absolute path in `terraform.tfvars`.
 - `virsh` commands prompt for password or fail:
   - verify `sudo` privileges and access to `qemu:///system`.
+
+### VM does not get a DHCP lease / Terraform hangs on `wait_for_lease`
+
+The mgmt network uses static DHCP reservations matched by MAC address. If the MAC changes (e.g. after recreating the VM), the lease won't be assigned.
+
+```bash
+# Check if the VM is running
+sudo virsh list --all | grep lab-
+
+# Check DHCP leases on the mgmt network
+sudo virsh net-dhcp-leases mgmt
+
+# Verify MAC addresses match what Terraform generated
+sudo virsh domiflist <vm-name>
+```
+
+### Accessing a VM via serial console (no SSH yet)
+
+```bash
+sudo virsh console <vm-name>
+# Exit with: Ctrl+]
+```
+
+### Debugging cloud-init
+
+Cloud-init runs on first boot and configures networking, users and SSH keys.
+
+```bash
+# Check cloud-init status
+sudo virsh console <vm-name>
+# Inside the VM:
+cloud-init status
+cat /var/log/cloud-init-output.log
+cat /var/log/cloud-init.log | grep -i error
+```
+
+### Orphaned resources after a failed `terraform apply`
+
+If apply fails mid-way, some resources may exist in libvirt but not in Terraform state.
+
+```bash
+# List all lab VMs in libvirt
+make lab-list
+
+# Force remove leftover VMs and storage
+make vms-undefine
+
+# Then re-apply from scratch
+make lab-up
+```
+
+## Pre-commit Hooks
+
+Install once after cloning:
+
+```bash
+pip install pre-commit
+pre-commit install
+```
+
+Hooks run automatically on `git commit`:
+- `terraform fmt` — format check
+- `terraform validate` — config validation
+- `gitleaks` — secret scanning
+
+Run manually on all files:
+
+```bash
+pre-commit run --all-files
+```
+
+## State Backend
+
+Terraform state is stored locally (`terraform.tfstate`). This is intentional for a
+single-user homelab — no locking, no remote sync. Do not run `terraform` from multiple
+machines without first migrating state to a remote backend.
+
+See [`docs/TODO.md`](docs/TODO.md) for a migration plan to GitLab-managed state.
 
 ## Notes
 

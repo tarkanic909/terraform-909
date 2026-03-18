@@ -1,0 +1,34 @@
+stages:
+  - validate
+
+default:
+  image:
+    name: hashicorp/terraform:1.14
+    entrypoint: [""]
+
+variables:
+  TF_IN_AUTOMATION: "true"
+
+cache:
+  key: terraform
+  paths:
+    - .terraform/
+    - .terraform.lock.hcl
+
+terraform:fmt:
+  stage: validate
+  script:
+    - terraform fmt -check -recursive
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+terraform:validate:
+  stage: validate
+  before_script:
+    - terraform init -backend=false
+  script:
+    - terraform validate
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
