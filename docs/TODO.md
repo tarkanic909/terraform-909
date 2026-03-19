@@ -1,5 +1,40 @@
 # TODO
 
+## Refactor `interlink_neighbors` to a list of objects with `name` field
+
+Currently `interlink_neighbors` in `nodes.tf` is a hardcoded map:
+
+```hcl
+interlink_neighbors = {
+  "lab-router1" = "lab-router2"
+  "lab-router2" = "lab-router1"
+}
+```
+
+This does not scale — adding a third router requires manual updates and the structure
+carries no metadata. Refactor to a list of objects:
+
+```hcl
+interlink_neighbors = [
+  { name = "lab-router1", neighbor = "lab-router2" },
+  { name = "lab-router2", neighbor = "lab-router1" },
+]
+```
+
+Then derive the lookup map from it:
+
+```hcl
+interlink_neighbors_map = {
+  for n in local.interlink_neighbors : n.name => n.neighbor
+}
+```
+
+Update all references in `nodes.tf` and `output.tf` to use `interlink_neighbors_map`.
+
+**Effort:** ~30 minutes
+
+---
+
 ## Migrate Terraform state to GitLab-managed remote backend
 
 **Why:** State is currently stored locally (`terraform.tfstate`). This means:

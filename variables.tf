@@ -25,12 +25,12 @@ variable "nodes" {
   type = map(object({
     memory       = number
     vcpu         = number
-    disk_size    = optional(number, 10) # GiB
-    network      = string               # as65001 | as65002
-    mgmt_ip      = string               # 192.168.100.x
-    lan_ip       = string
-    as           = number
-    role         = string # router | single | master | worker
+    disk_size    = optional(number, 10)
+    network      = string
+    mgmt_ip      = string
+    lan_cidr     = string
+    bgp_as       = number
+    role         = string
     interlink_ip = optional(string, null)
   }))
 
@@ -46,6 +46,13 @@ variable "nodes" {
       for node in values(var.nodes) : can(cidrhost("${node.mgmt_ip}/32", 0))
     ])
     error_message = "Each node.mgmt_ip must be a valid IP address."
+  }
+
+  validation {
+    condition = alltrue([
+      for node in values(var.nodes) : can(cidrhost("${node.lan_cidr}", 0))
+    ])
+    error_message = "Each node.lan_cidr must be a valid CIDR (e.g., 10.0.1.1/24)."
   }
 
   validation {
@@ -87,9 +94,9 @@ variable "nodes" {
   validation {
     condition = alltrue([
       for node in values(var.nodes) :
-      (node.network == "as65001" && node.as == 65001) ||
-      (node.network == "as65002" && node.as == 65002)
+      (node.network == "as65001" && node.bgp_as == 65001) ||
+      (node.network == "as65002" && node.bgp_as == 65002)
     ])
-    error_message = "node.as must match node.network: as65001 requires as=65001, as65002 requires as=65002."
+    error_message = "node.bgp_as must match node.network: as65001 requires bgp_as=65001, as65002 requires bgp_as=65002."
   }
 }
