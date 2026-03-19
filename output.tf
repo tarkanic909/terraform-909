@@ -4,8 +4,8 @@ output "node_info" {
     node_name => {
       name            = node_name
       mgmt_ip         = local.mgmt_ips[node_name]
-      lan_ip          = node.lan_ip
-      lan_network     = node.lan_network
+      lan_ip          = split("/", node.lan_cidr)[0]
+      lan_network     = cidrhost(node.lan_cidr, 0)
       interlink_ip    = try(local.interlink_ips[node_name], null)
       memory          = node.memory
       vcpu            = node.vcpu

@@ -25,13 +25,12 @@ variable "nodes" {
   type = map(object({
     memory       = number
     vcpu         = number
-    disk_size    = optional(number, 10) # GiB
-    network      = string               # as65001 | as65002
-    mgmt_ip      = string               # 192.168.100.x
-    lan_ip       = string
-    lan_network  = string
+    disk_size    = optional(number, 10)
+    network      = string
+    mgmt_ip      = string
+    lan_cidr     = string
     bgp_as       = number
-    role         = string # router | single | master | worker
+    role         = string
     interlink_ip = optional(string, null)
   }))
 
@@ -47,6 +46,13 @@ variable "nodes" {
       for node in values(var.nodes) : can(cidrhost("${node.mgmt_ip}/32", 0))
     ])
     error_message = "Each node.mgmt_ip must be a valid IP address."
+  }
+
+  validation {
+    condition = alltrue([
+      for node in values(var.nodes) : can(cidrhost("${node.lan_cidr}", 0))
+    ])
+    error_message = "Each node.lan_cidr must be a valid CIDR (e.g., 10.0.1.1/24)."
   }
 
   validation {
