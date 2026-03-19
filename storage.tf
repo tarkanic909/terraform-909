@@ -44,6 +44,7 @@ resource "libvirt_cloudinit_disk" "init" {
     ssh_public_key = var.ssh_public_key
     lan_cidr       = each.value.lan_cidr
     interlink_ip   = lookup(local.interlink_ips, each.key, "")
+    gateway_ip     = local.lan_gateways[each.key]
     mgmt_mac       = local.macs["${each.key}-mgmt"]
     lan_mac        = local.macs["${each.key}-lan"]
     interlink_mac  = local.macs["${each.key}-interlink"]
@@ -61,7 +62,7 @@ resource "libvirt_cloudinit_disk" "init" {
 # A single resource is not sufficient; the volume wrapper is required by the provider API.
 resource "libvirt_volume" "cloud_init" {
   for_each = var.nodes
-  name     = "${each.key}-cidata.iso"
+  name     = "${each.key}-cidata-vol.iso"
   pool     = "default"
 
   create = {

@@ -11,8 +11,8 @@ output "node_info" {
       vcpu            = node.vcpu
       role            = node.role
       bgp_as          = node.bgp_as
-      bgp_neighbor_ip = try(local.interlink_ips[local.interlink_neighbors[node_name]], null)
-      bgp_neighbor_as = try(var.nodes[local.interlink_neighbors[node_name]].bgp_as, null)
+      bgp_neighbor_ip = node.role == "router" ? try(local.interlink_ips[local.interlink_neighbors[node_name]], null) : null
+      bgp_neighbor_as = node.role == "router" ? try(var.nodes[local.interlink_neighbors[node_name]].bgp_as, null) : null
     }
   }
 }

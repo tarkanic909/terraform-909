@@ -11,6 +11,15 @@ locals {
   mgmt_ips = {
     for name, node in var.nodes : name => node.mgmt_ip
   }
+  # Gateway per node — derived from the router in the same network (empty for routers)
+  lan_gateways = {
+    for name, node in var.nodes :
+    name => node.role == "router" ? "" : try(split("/", [
+      for n in values(var.nodes) : n.lan_cidr
+      if n.role == "router" && n.network == node.network
+    ][0])[0], "")
+  }
+
   # Single MAC map keyed by "name-iface" — avoids repeating the same format/md5 pattern
   macs = {
     for seed in flatten([

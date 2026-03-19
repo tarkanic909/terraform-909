@@ -1,5 +1,14 @@
 # TODO
 
+## Review Makefile complexity
+
+Review whether the Makefile has grown too complex and whether some targets
+(e.g. `lab-wait`, `vms-undefine`) should be simplified or split into scripts.
+
+**Effort:** ~30 minutes
+
+---
+
 ## Refactor `interlink_neighbors` to a list of objects with `name` field
 
 Currently `interlink_neighbors` in `nodes.tf` is a hardcoded map:
