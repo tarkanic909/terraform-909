@@ -2,9 +2,11 @@
 
 .DEFAULT_GOAL := help
 
+VIRSH = virsh -c qemu:///system
+
 # Lab VMs lists (evaluated when used).
-LAB_VMS_ALL     = $(shell sudo virsh list --all | awk '$$2 ~ /^lab-/ {print $$2}')
-LAB_VMS_RUNNING = $(shell sudo virsh list | awk '$$2 ~ /^lab-/ {print $$2}')
+LAB_VMS_ALL     = $(shell $(VIRSH) list --all | sed 's/\x1b\[[0-9;]*m//g' | awk '$$2 ~ /^lab-/ {print $$2}')
+LAB_VMS_RUNNING = $(shell $(VIRSH) list | sed 's/\x1b\[[0-9;]*m//g' | awk '$$2 ~ /^lab-/ {print $$2}')
 
 help:
 	@echo "Available targets:"
@@ -60,7 +62,7 @@ lab-wait:
 	@echo "Waiting for cloud-init to finish on all lab VMs..."
 	@for vm in $(LAB_VMS_ALL); do \
 		echo "  Waiting for $$vm..."; \
-		ip=$$(terraform output -json node_info 2>/dev/null | jq -r --arg vm "$$vm" '.[$vm].mgmt_ip // empty'); \
+		ip=$$(terraform output -json node_info 2>/dev/null | jq -r --arg vm "$$vm" '.[$$vm].mgmt_ip // empty'); \
 		if [ -z "$$ip" ]; then echo "  WARNING: no mgmt_ip for $$vm, skipping"; continue; fi; \
 		for i in $$(seq 1 30); do \
 			ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes \
@@ -75,13 +77,13 @@ lab-wait:
 ## lab-list: - libvirt List lab VMs
 lab-list:
 	@echo "List all lab vms (all states)"
-	sudo virsh list --all | awk '$$2 ~ /^lab-/ {print }'
+	$(VIRSH) list --all | awk '$$2 ~ /^lab-/ {print }'
 
 ## lab-info: - libvirt Show lab VM details (CPU, memory, state)
 lab-info:
 	@for vm in $(LAB_VMS_ALL); do \
 		echo "=== $$vm ==="; \
-		sudo virsh dominfo "$$vm" | grep -E 'State|CPU|Max memory|Used memory'; \
+		$(VIRSH) dominfo "$$vm" | grep -E 'State|CPU|Max memory|Used memory'; \
 	done
 
 ## vms-stop: - libvirt Stop all running lab VMs
@@ -89,7 +91,7 @@ vms-stop:
 	@echo "Stopping running lab VMs..."
 	@for vm in $(LAB_VMS_RUNNING); do \
 		echo "  $$vm"; \
-		sudo virsh destroy "$$vm" 2>/dev/null || true; \
+		$(VIRSH) destroy "$$vm" 2>/dev/null || true; \
 	done
 	@echo "Done."
 
@@ -98,7 +100,7 @@ vms-start:
 	@echo "Starting lab VMs..."
 	@for vm in $(LAB_VMS_ALL); do \
 		echo "  $$vm"; \
-		sudo virsh start "$$vm" 2>/dev/null || true; \
+		$(VIRSH) start "$$vm" 2>/dev/null || true; \
 	done
 	@echo "Done."
 
@@ -108,7 +110,7 @@ vms-undefine: vms-stop
 	@failed=0; \
 	for vm in $(LAB_VMS_ALL); do \
 		echo "  $$vm"; \
-		sudo virsh undefine "$$vm" --remove-all-storage || { echo "ERROR: failed to undefine $$vm" >&2; failed=1; }; \
+		$(VIRSH) undefine "$$vm" --remove-all-storage || { echo "ERROR: failed to undefine $$vm" >&2; failed=1; }; \
 	done; \
 	[ "$$failed" -eq 0 ] || (echo "Some VMs failed to undefine." >&2; exit 1)
 	@echo "Done."
