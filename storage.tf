@@ -61,7 +61,7 @@ resource "libvirt_cloudinit_disk" "init" {
 # A single resource is not sufficient; the volume wrapper is required by the provider API.
 resource "libvirt_volume" "cloud_init" {
   for_each = var.nodes
-  name     = "${each.key}-cidata.iso"
+  name     = "${each.key}-cidata-vol.iso"
   pool     = "default"
 
   create = {
