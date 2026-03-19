@@ -44,6 +44,7 @@ resource "libvirt_cloudinit_disk" "init" {
     ssh_public_key = var.ssh_public_key
     lan_cidr       = each.value.lan_cidr
     interlink_ip   = lookup(local.interlink_ips, each.key, "")
+    gateway_ip     = local.lan_gateways[each.key]
     mgmt_mac       = local.macs["${each.key}-mgmt"]
     lan_mac        = local.macs["${each.key}-lan"]
     interlink_mac  = local.macs["${each.key}-interlink"]

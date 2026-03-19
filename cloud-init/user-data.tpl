@@ -60,6 +60,9 @@ write_files:
 
       [Network]
       Address=${lan_cidr}
+      %{ if gateway_ip != "" }
+      Gateway=${gateway_ip}
+      %{ endif }
 
   %{ if interlink_ip != "" }
   - path: /etc/systemd/network/30-interlink0.network
