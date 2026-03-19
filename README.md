@@ -79,7 +79,11 @@ Libvirt utility targets:
 
 `terraform output -json node_info` includes:
 - VM name
-- management IP
+- management IP (`mgmt_ip`)
+- LAN IP (`lan_ip`)
+- LAN CIDR (`lan_cidr`)
+- LAN network address (`lan_network`)
+- interlink IP (`interlink_ip`, routers only)
 - memory
 - vCPU
 
@@ -94,7 +98,7 @@ make info
 - `mgmt`: `192.168.100.0/24`, gateway `192.168.100.1`, per-node DHCP reservations
 - `as65001`: `10.0.1.0/24`
 - `as65002`: `10.0.2.0/24`
-- `interlink`: `10.0.0.0/30` (router1 `10.0.0.1`, router2 `10.0.0.2`)
+- `interlink`: `10.0.0.0/29` (router1 `10.0.0.1`, router2 `10.0.0.2`)
 
 ## Troubleshooting
 

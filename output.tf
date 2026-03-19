@@ -5,6 +5,7 @@ output "node_info" {
       name            = node_name
       mgmt_ip         = local.mgmt_ips[node_name]
       lan_ip          = split("/", node.lan_cidr)[0]
+      lan_cidr        = node.lan_cidr
       lan_network     = cidrhost(node.lan_cidr, 0)
       interlink_ip    = try(local.interlink_ips[node_name], null)
       memory          = node.memory
