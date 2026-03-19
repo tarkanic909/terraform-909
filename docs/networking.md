@@ -1,11 +1,11 @@
 # Networking
 
-## Topológia
+## Topology
 
 ```
 Host machine
 │
-├── mgmt (192.168.100.0/24, NAT)        ← SSH / Ansible prístup z hosta
+├── mgmt (192.168.100.0/24, NAT)        ← SSH / Ansible access from host
 │   ├── lab-router1      192.168.100.10
 │   ├── lab-k3s-single   192.168.100.11
 │   ├── lab-router2      192.168.100.12
@@ -13,11 +13,11 @@ Host machine
 │   ├── lab-k3s-w1       192.168.100.14
 │   └── lab-k3s-w2       192.168.100.15
 │
-├── as65001 (10.0.1.0/24, isolated)     ← interná sieť AS 65001
+├── as65001 (10.0.1.0/24, isolated)     ← internal network AS 65001
 │   ├── lab-router1      10.0.1.1
 │   └── lab-k3s-single   10.0.1.10
 │
-├── as65002 (10.0.2.0/24, isolated)     ← interná sieť AS 65002
+├── as65002 (10.0.2.0/24, isolated)     ← internal network AS 65002
 │   ├── lab-router2      10.0.2.1
 │   ├── lab-k3s-master   10.0.2.10
 │   ├── lab-k3s-w1       10.0.2.11
@@ -28,17 +28,20 @@ Host machine
     └── lab-router2      10.0.0.2
 ```
 
-Každý VM má 2 alebo 3 sieťové rozhrania podľa roly:
+> **Note:** `10.0.0.0/29` is the overall interlink address space.
+> Each interface uses a `/30` mask (point-to-point pair), as seen in `cloud-init/user-data.tpl`: `Address=${interlink_ip}/30`.
+
+Each VM has 2 or 3 network interfaces depending on its role:
 - `router` — mgmt + lan + interlink
-- ostatné — mgmt + lan
+- others — mgmt + lan
 
 ---
 
-## Ako Terraform prideľuje MAC adresy
+## How Terraform assigns MAC addresses
 
-MAC adresy sú **deterministicky generované** z názvu nodu a názvu rozhrania pomocou MD5 hashu.
+MAC addresses are **deterministically generated** from the node name and interface name using an MD5 hash.
 
-### Algoritmus (`nodes.tf`)
+### Algorithm (`nodes.tf`)
 
 ```hcl
 macs = {
@@ -52,29 +55,29 @@ macs = {
 }
 ```
 
-Seed string má tvar `"<node-name>-<iface>"`, napr. `"lab-router1-mgmt"`.
-Z MD5 hashu (32 hex znakov) sa vezme prvých 8 znakov = 4 oktety.
-Prefix `52:54` je štandardný OUI pre KVM/QEMU virtuálne NIC.
+The seed string has the form `"<node-name>-<iface>"`, e.g. `"lab-router1-mgmt"`.
+The first 8 hex characters of the MD5 hash (32 hex chars total) are used = 4 octets.
+The `52:54` prefix is the standard OUI for KVM/QEMU virtual NICs.
 
-Príklad:
+Example:
 ```
 seed:  lab-router1-mgmt
 md5:   8b1a3f2c...
 mac:   52:54:8b:1a:3f:2c
 ```
 
-Výhody tohto prístupu:
-- MAC je vždy rovnaká pre daný nod — `terraform apply` ju nezmení
-- Nevyžaduje externý stav ani counter
-- Každé rozhranie má unikátnu MAC (rôzny seed)
+Benefits of this approach:
+- MAC is always the same for a given node — `terraform apply` will not change it
+- Requires no external state or counter
+- Each interface has a unique MAC (different seed)
 
 ---
 
-## Ako Terraform prideľuje IP adresy
+## How Terraform assigns IP addresses
 
-### Management sieť (mgmt)
+### Management network (mgmt)
 
-IP je definovaná explicitne v `nodes.auto.tfvars` ako `mgmt_ip`:
+The IP is defined explicitly in `nodes.auto.tfvars` as `mgmt_ip`:
 
 ```hcl
 "lab-router1" = {
@@ -83,38 +86,57 @@ IP je definovaná explicitne v `nodes.auto.tfvars` ako `mgmt_ip`:
 }
 ```
 
-DHCP server v libvirt má statické rezervácie — priradí IP podľa MAC:
+The libvirt DHCP server has static reservations — it assigns an IP based on the MAC:
 
 ```hcl
 # network.tf
 hosts = [
   for name, _ in var.nodes : {
-    mac = local.macs["${name}-mgmt"]   # deterministická MAC
+    mac = local.macs["${name}-mgmt"]   # deterministic MAC
     ip  = local.mgmt_ips[name]         # = node.mgmt_ip
   }
 ]
 ```
 
-Výsledok: VM vždy dostane tú istú IP bez ohľadu na poradie bootu.
+Result: the VM always gets the same IP regardless of boot order.
 
-Terraform čaká na DHCP lease (`wait_for_lease = true` na mgmt interface) pred tým, ako označí resource za hotový.
+Terraform waits for the DHCP lease (`wait_for_lease = true` on the mgmt interface) before marking the resource as ready.
 
-### LAN a Interlink siete
+### LAN and Interlink networks
 
-IP je tiež definovaná explicitne v `nodes.auto.tfvars` (`lan_ip`, `interlink_ip`).
-Tieto siete **nemajú DHCP** — sú isolated (bez NAT, bez DHCP servera).
-IP sa konfiguruje priamo na VM cez cloud-init → systemd-networkd.
+IPs are also defined explicitly in `nodes.auto.tfvars` (`lan_cidr`, `interlink_ip`).
+These networks **have no DHCP** — they are isolated (no NAT, no DHCP server).
+IPs are configured directly on the VM via cloud-init → systemd-networkd.
+
+### Gateway for LAN interfaces
+
+The gateway is **dynamically computed** in `nodes.tf` (`lan_gateways`):
+
+```hcl
+# nodes.tf
+lan_gateways = {
+  for name, node in var.nodes :
+  name => node.role == "router" ? "" : try(split("/", [
+    for n in values(var.nodes) : n.lan_cidr
+    if n.role == "router" && n.network == node.network
+  ][0])[0], "")
+}
+```
+
+- Routers have no gateway (empty string).
+- Other nodes receive the IP of the router in the same network (first IP from the router's `lan_cidr`).
+- The gateway is written to the `.network` file only if it is non-empty (`%{ if gateway_ip != "" }`).
 
 ---
 
-## Ako systemd-networkd používa MAC adresy
+## How systemd-networkd uses MAC addresses
 
-Cloud-init zapíše do VM dva typy súborov pre každé rozhranie.
+Cloud-init writes two types of files into the VM for each interface.
 
-### `.link` súbory — premenovanie rozhrania
+### `.link` files — interface renaming
 
-Spracúva ich `udev` pri detekcii sieťového zariadenia.
-Rozhranie sa premenuje podľa MAC → custom meno.
+Processed by `udev` when a network device is detected.
+The interface is renamed based on MAC → custom name.
 
 ```ini
 # /etc/systemd/network/10-mgmt0.link
@@ -125,12 +147,12 @@ MACAddress=52:54:8b:1a:3f:2c
 Name=mgmt0
 ```
 
-Po premenovaní: `eth0` (alebo `ens3`) → `mgmt0`.
+After renaming: `eth0` (or `ens3`) → `mgmt0`.
 
-### `.network` súbory — konfigurácia IP
+### `.network` files — IP configuration
 
-Spracúva ich `systemd-networkd`.
-Matchujú tiež podľa MAC — fungujú aj na prvom boote pred premenovaním.
+Processed by `systemd-networkd`.
+Also matched by MAC — works on first boot before renaming.
 
 ```ini
 # /etc/systemd/network/10-mgmt0.network
@@ -150,20 +172,23 @@ MACAddress=52:54:...
 Address=10.0.1.1/24
 ```
 
-### Prečo matchovať podľa MAC a nie podľa mena?
+### Why match by MAC and not by name?
 
-`.link` súbor sa aplikuje pri prvom `udev` evente — čo môže byť po tom, ako
-`systemd-networkd` už spracoval `.network` súbory. Matchovanie podľa MAC
-zabezpečí správnu konfiguráciu aj keď rozhranie ešte nemá finálne meno.
+The `.link` file is applied on the first `udev` event — which may happen after
+`systemd-networkd` has already processed the `.network` files. Matching by MAC
+ensures correct configuration even when the interface does not yet have its final name.
 
-### Celý flow prvého bootu
+### Full first-boot flow
 
 ```
-1. QEMU vytvorí VM s MAC adresami definovanými v Terraform
-2. Cloud-init zapíše .link a .network súbory
-3. systemd-networkd štartuje, matchuje rozhrania podľa MAC
-4. mgmt0 dostane IP cez DHCP (rezervácia podľa MAC → deterministická IP)
-5. lan0 / interlink0 dostanú statické IP
-6. Terraform detekuje DHCP lease na mgmt → resource je hotový
-7. /etc/hosts na hoste sa aktualizuje (null_resource provisioner)
+1. QEMU creates the VM with MAC addresses defined in Terraform
+2. Cloud-init writes .link and .network files
+3. systemd-networkd starts, matches interfaces by MAC
+4. mgmt0 gets an IP via DHCP (reservation by MAC → deterministic IP)
+5. lan0 gets a static IP; interlink0 only if interlink_ip != "" (routers)
+6. Terraform detects the DHCP lease on mgmt → resource is ready
+7. /etc/hosts on the host is updated (null_resource provisioner)
 ```
+
+> **Conditional interface:** Files for `interlink0` are generated in cloud-init only for nodes
+> with a non-empty `interlink_ip` (role `router`). Non-router nodes have only `mgmt0` and `lan0`.
