@@ -59,7 +59,7 @@ write_files:
       MACAddress=${lan_mac}
 
       [Network]
-      Address=${lan_ip}/24
+      Address=${lan_cidr}
 
   %{ if interlink_ip != "" }
   - path: /etc/systemd/network/30-interlink0.network
