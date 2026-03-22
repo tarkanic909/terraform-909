@@ -161,7 +161,16 @@ MACAddress=52:54:8b:1a:3f:2c
 
 [Network]
 DHCP=ipv4
+
+[DHCPv4]
+UseRoutes=false
+UseGateway=false
 ```
+
+On non-router nodes, the `DHCPv4` section is added intentionally so `mgmt0`
+receives an address from DHCP but does not install a default route. This keeps
+SSH/Ansible reachability on the management network while leaving the default
+gateway on `lan0` (`10.0.1.1` or `10.0.2.1` depending on the AS).
 
 ```ini
 # /etc/systemd/network/20-lan0.network
@@ -185,9 +194,10 @@ ensures correct configuration even when the interface does not yet have its fina
 2. Cloud-init writes .link and .network files
 3. systemd-networkd starts, matches interfaces by MAC
 4. mgmt0 gets an IP via DHCP (reservation by MAC → deterministic IP)
-5. lan0 gets a static IP; interlink0 only if interlink_ip != "" (routers)
-6. Terraform detects the DHCP lease on mgmt → resource is ready
-7. /etc/hosts on the host is updated (null_resource provisioner)
+5. Non-router nodes ignore DHCP routes on mgmt0, so their default route stays on lan0
+6. lan0 gets a static IP; interlink0 only if interlink_ip != "" (routers)
+7. Terraform detects the DHCP lease on mgmt → resource is ready
+8. /etc/hosts on the host is updated (null_resource provisioner)
 ```
 
 > **Conditional interface:** Files for `interlink0` are generated in cloud-init only for nodes
