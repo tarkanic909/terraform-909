@@ -52,6 +52,12 @@ write_files:
 
       [Network]
       DHCP=ipv4
+      %{ if role != "router" ~}
+
+      [DHCPv4]
+      UseRoutes=false
+      UseGateway=false
+      %{ endif ~}
 
   - path: /etc/systemd/network/20-lan0.network
     content: |
