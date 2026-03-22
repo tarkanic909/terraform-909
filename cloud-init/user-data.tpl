@@ -69,6 +69,9 @@ write_files:
       %{ if gateway_ip != "" }
       Gateway=${gateway_ip}
       %{ endif }
+      %{ if role == "router" ~}
+      IPMasquerade=ipv4
+      %{ endif ~}
 
   %{ if interlink_ip != "" }
   - path: /etc/systemd/network/30-interlink0.network
