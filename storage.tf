@@ -42,6 +42,7 @@ resource "libvirt_cloudinit_disk" "init" {
     hostname       = each.key
     ansible_user   = var.ansible_user
     ssh_public_key = var.ssh_public_key
+    role           = each.value.role
     lan_cidr       = each.value.lan_cidr
     interlink_ip   = lookup(local.interlink_ips, each.key, "")
     gateway_ip     = local.lan_gateways[each.key]
